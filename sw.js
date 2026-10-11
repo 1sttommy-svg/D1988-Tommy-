@@ -1,5 +1,5 @@
 // Version erhöhen, wenn du eine neue Spielversion hochlädst
-const CACHE = 'filder-defense-v4';
+const CACHE = 'filder-defense-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
