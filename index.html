@@ -188,39 +188,50 @@ for(let i=0;i<WP.length-1;i++){
 }
 function posAt(d){for(const s of segs){if(d<=s.s+s.l){const t=(d-s.s)/s.l;return{x:s.a.x+(s.b.x-s.a.x)*t,y:s.a.y+(s.b.y-s.a.y)*t};}}return pts[pts.length-1];}
 
-// ---------- Hintergrund einmal vorzeichnen: Wiese, Pflasterweg, Burgtor ----------
+// ---------- Hintergrund: Kenney-Kacheln (Medieval RTS, CC0), solange sie laden ein gezeichneter Ersatz ----------
+// Deko-Felder (Bäume, Baumstümpfe) und die Burg am Ausgang sind nicht bebaubar
+const DECOR={'0,0':46,'7,0':48,'7,5':42,'0,10':47,'0,6':50,'7,8':52};
+const CASTLE={x:3,y:11};
+const BLOCKED=new Set([...Object.keys(DECOR),'2,11','4,11']);
+const IMG={};
+const ROAD={NS:'03',EW:'04',ES:'17',SW:'18',EN:'31',NW:'32'};
+function roadKey(x,y){
+  const c=[];
+  if(pathCells.has(x+','+(y-1)))c.push('N');
+  if(pathCells.has((x+1)+','+y))c.push('E');
+  if(pathCells.has(x+','+(y+1))||(x===CASTLE.x&&y===ROWS-1))c.push('S');
+  if(pathCells.has((x-1)+','+y)||(x===0&&y===1))c.push('W');
+  const k=c.join(''),alt={NS:'NS',EW:'EW',ES:'ES',SW:'SW',NE:'EN',NW:'NW'};
+  return alt[k]||alt[c.slice().reverse().join('')]||'NS';
+}
 const bg=document.createElement('canvas');bg.width=W*dpr;bg.height=H*dpr;
-(function paintBg(){
+function paintBg(){
   const g=bg.getContext('2d');if(!g||!g.setTransform)return;g.setTransform(dpr,0,0,dpr,0,0);
   let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const isPath=(x,y)=>pathCells.has(x+','+y);
+  const tiles=IMG.ok;
   for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const key=x+','+y;
+    if(tiles){
+      g.drawImage(IMG[rnd()<.5?'57':'58'],x*C,y*C,C+.5,C+.5);
+      if(pathCells.has(key))g.drawImage(IMG[ROAD[roadKey(x,y)]],x*C,y*C,C+.5,C+.5);
+      else if(DECOR[key])g.drawImage(IMG[DECOR[key]],x*C,y*C,C+.5,C+.5);
+      continue;
+    }
     g.fillStyle=(x+y)%2?'#3b5128':'#3f562b';g.fillRect(x*C,y*C,C,C);
-    if(isPath(x,y))continue;
-    for(let i=0;i<7;i++){g.strokeStyle=rnd()<.5?'#4c6a33':'#334722';g.lineWidth=1.2;
-      const px=x*C+4+rnd()*(C-8),py=y*C+6+rnd()*(C-10);g.beginPath();g.moveTo(px,py);g.lineTo(px+(rnd()-.5)*3,py-4-rnd()*3);g.stroke();}
-    if(rnd()<.18){const px=x*C+6+rnd()*(C-12),py=y*C+6+rnd()*(C-12);g.fillStyle=['#e8d36a','#d98fb0','#efe6d2'][Math.floor(rnd()*3)];
-      for(let k=0;k<4;k++){g.beginPath();g.arc(px+Math.cos(k*1.57)*2,py+Math.sin(k*1.57)*2,1.5,0,7);g.fill();}}
   }
-  // Wegrand
+  if(tiles)return;
   g.lineCap='round';g.lineJoin='round';
   g.strokeStyle='#5e4a30';g.lineWidth=C*0.92;g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.stroke();
   g.strokeStyle='#8c7550';g.lineWidth=C*0.8;g.stroke();
-  // Pflastersteine
-  for(const k of pathCells){const [x,y]=k.split(',').map(Number);
-    for(let r=0;r<3;r++)for(let c=0;c<3;c++){
-      const sx=x*C+4+c*13+(r%2?4:0)+rnd()*2,sy=y*C+4+r*13+rnd()*2;
-      if(sx>x*C+C-8)continue;
-      const v=Math.floor(130+rnd()*30);g.fillStyle='rgb('+v+','+(v-14)+','+(v-36)+')';
-      g.beginPath();g.roundRect(sx,sy,10+rnd()*2,10,3);g.fill();}}
-  // Burgtor am Ausgang (unten)
-  const gx=3*C,gy=H-C*0.55;
-  g.fillStyle='#6d665c';g.fillRect(gx-10,gy,C+20,C*0.55);
-  g.fillStyle='#857d70';for(let i=0;i<5;i++)g.fillRect(gx-10+i*(C+20)/5+2,gy-6,(C+20)/5-5,7);
-  g.fillStyle='#2a1d12';g.beginPath();g.moveTo(gx+8,H);g.lineTo(gx+8,gy+10);g.arc(gx+C/2,gy+10,C/2-8,Math.PI,0);g.lineTo(gx+C-8,H);g.fill();
-  g.strokeStyle='#4a3a26';g.lineWidth=1.5;for(let i=1;i<4;i++){g.beginPath();g.moveTo(gx+8+i*(C-16)/4,gy+4);g.lineTo(gx+8+i*(C-16)/4,H);g.stroke();}
-  // Waldrand am Eingang (oben links)
-  for(let i=0;i<4;i++){const tx=6+i*4,ty=C*1.5-14+(i%2)*28;g.fillStyle='#1f3016';g.beginPath();g.arc(tx,ty,9,0,7);g.fill();}
+}
+paintBg();
+(function loadTiles(){
+  const names=['03','04','17','18','31','32','57','58',...new Set(Object.values(DECOR).map(String))];
+  let left=names.length+1,failed=false;
+  const done=()=>{if(--left===0&&!failed){IMG.ok=true;paintBg();}};
+  const load=(key,src)=>{const im=new Image();im.onload=done;im.onerror=()=>{failed=true;};im.src=src;IMG[key]=im;};
+  for(const n of names)load(n,'assets/tile_'+n+'.png');
+  load('castle','assets/castle.png');
 })();
 
 const SPEEDS=[1,2,3];
@@ -499,6 +510,7 @@ function draw(){
     ctx.fillText('Tippe auf ein freies Feld,',W/2,H/2-6);ctx.fillText('um '+HEROES[S.heroType].name+' zu setzen',W/2,H/2+16);
   }
   for(const e of S.enemies)drawFoe(e);
+  if(IMG.ok){const cw=C*2.1,ch=cw*76/120;ctx.drawImage(IMG.castle,4,0,120,76,(CASTLE.x+.5)*C-cw/2,H-ch,cw,ch);} // Burg aus Kenney Medieval RTS
   for(const s of S.shots){
     if(s.kind==='arrow'){ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.ang);
       ctx.strokeStyle='#5b3a1a';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(3,0);ctx.stroke();
@@ -539,7 +551,7 @@ cv.addEventListener('pointerdown',e=>{
   const ex=S.towers.find(t=>t.cx===x&&t.cy===y);
   if(ex){S.sel=S.sel===ex?null:ex;hud();return;}
   if(S.sel){S.sel=null;hud();return;} // erst Menü schließen, nicht gleich bauen
-  if(pathCells.has(x+','+y))return;
+  if(pathCells.has(x+','+y)||BLOCKED.has(x+','+y))return;
   if(!S.hero){S.hero={type:S.heroType,cx:x,cy:y,x:(x+.5)*C,y:(y+.5)*C,lvl:1,kills:0,cd:0,acd:0,a:-Math.PI/2};
     floatText(HEROES[S.heroType].name+' ist bereit',HEROES[S.heroType].color);hud();return;}
   if(S.hero.cx===x&&S.hero.cy===y)return;
