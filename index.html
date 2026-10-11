@@ -12,42 +12,54 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-</head>
-<body>
 <style>
-/* Layout: eine Spalte, HUD oben, Spielfeld mittig, Bauleiste unten. Bewusst ein festes dunkles Spielbrett-Design. */
+/* Layout: eine Spalte, HUD oben (mit Tempo-Taste rechts), Spielfeld mittig, Bauleiste unten in zwei Reihen. */
 :root{
   --bg:#141a12; --panel:#1f2a1c; --line:#3a4a32; --fg:#e9eedf; --muted:#9fae92;
-  --accent:#f2b134; --danger:#e0574f; --ice:#6cc4d9;
+  --accent:#f2b134; --danger:#e0574f; --good:#8fd16b;
   --font:ui-rounded, -apple-system, "SF Pro Rounded", system-ui, "Segoe UI", sans-serif;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;touch-action:manipulation;-webkit-touch-callout:none;padding-top:calc(12px + env(safe-area-inset-top,0px))!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;background:var(--bg);color:var(--fg);font-family:var(--font);padding-inline:16px;padding-block:12px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:10px;user-select:none;-webkit-user-select:none}
-.hud{width:100%;max-width:420px;display:flex;justify-content:space-between;gap:8px;font-size:15px;font-variant-numeric:tabular-nums}
-.stat{display:flex;flex-direction:column;align-items:flex-start}
+body{margin:0;touch-action:manipulation;-webkit-touch-callout:none;background:var(--bg);color:var(--fg);font-family:var(--font);
+  padding-inline:16px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:10px;user-select:none;-webkit-user-select:none}
+.hud{width:100%;max-width:420px;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;align-items:flex-start;flex:1 1 0}
 .stat b{font-size:20px}
 .stat span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.wrap{position:relative;width:min(100%, 420px, calc((100dvh - 210px) * 2 / 3));aspect-ratio:2/3}
+.wrap{position:relative;width:min(100%, 420px, calc((100dvh - 250px) * 2 / 3));aspect-ratio:2/3}
 canvas{width:100%;height:100%;display:block;border-radius:10px;border:1px solid var(--line);touch-action:none}
-.bar{width:100%;max-width:420px;display:flex;gap:8px;flex-wrap:wrap}
-button{font-family:var(--font);font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:10px 12px;cursor:pointer;flex:1 1 0;min-width:0}
+.bar{width:100%;max-width:420px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font-family:var(--font);font-size:14px;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:10px 12px;cursor:pointer;min-width:0}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 button small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+#speed{flex:0 0 auto;min-width:56px;font-size:16px;padding:8px 10px}
+#speed.fast{border-color:var(--accent);color:var(--accent)}
 #go{background:var(--accent);color:#1b1407;border-color:var(--accent)}
+#go small{color:#4a3a14}
 #go:disabled{opacity:.45;cursor:default}
+#go{display:flex;align-items:center;justify-content:center;gap:10px;text-align:left}
+.ring{--p:0;flex:0 0 auto;width:26px;height:26px;border-radius:50%;
+  background:conic-gradient(#1b1407 calc(var(--p)*360deg), rgba(27,20,7,.22) 0);
+  -webkit-mask:radial-gradient(circle, transparent 7px, #000 8px);mask:radial-gradient(circle, transparent 7px, #000 8px)}
+#auto.on{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+#auto.on b{color:var(--good)}
 .hint{font-size:12px;color:var(--muted);text-align:center;max-width:420px}
 .over{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,14,9,.82);border-radius:10px;text-align:center;padding:16px}
 .over h2{margin:0;font-size:28px;color:var(--accent)}
-.over button{flex:0 0 auto;padding:12px 22px}
+.over button{padding:12px 22px}
 </style>
+</head>
+<body>
 
 <div class="hud">
   <div class="stat"><b id="gold">0</b><span>Gold</span></div>
   <div class="stat"><b id="lives">0</b><span>Leben</span></div>
   <div class="stat"><b id="wave">0</b><span>Welle</span></div>
+  <button id="speed" aria-label="Spieltempo">1×</button>
 </div>
 
 <div class="wrap">
@@ -62,9 +74,10 @@ button small{display:block;font-weight:500;color:var(--muted);font-size:11px}
 <div class="bar">
   <button id="t-cannon" class="sel">Kanone<small>50 Gold · Einzelziel</small></button>
   <button id="t-mortar">Mörser<small>80 Gold · Flächenschaden</small></button>
-  <button id="go">Welle starten</button>
+  <button id="go"><span class="ring" id="ring" hidden></span><span><span id="goLabel">Welle starten</span><small id="goSub">Bauphase</small></span></button>
+  <button id="auto"><b id="autoLabel">Dauerwelle: aus</b><small id="autoSub">Wellen ohne Pause · Bonus-Gold</small></button>
 </div>
-<div class="hint">Tippe auf ein freies Feld, um den gewählten Turm zu bauen. Tippe auf einen Turm, um seine Reichweite zu sehen.</div>
+<div class="hint">Tippe auf ein freies Feld, um den gewählten Turm zu bauen. Nach jeder Welle läuft ein Countdown. Wer früher startet, bekommt anteilig Bonus-Gold, die Dauerwelle zahlt den vollen Bonus.</div>
 
 <script>
 (()=>{
@@ -72,12 +85,12 @@ const W=360,H=540,C=45,COLS=8,ROWS=12;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const dpr=Math.min(window.devicePixelRatio||1,3);
 cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+const $=id=>document.getElementById(id);
 
 const TYPES={
-  cannon:{name:'Kanone',cost:50,range:2.2*C,dmg:12,rate:.7,speed:320,splash:0,color:'#c9d4bb'},
-  mortar:{name:'Mörser',cost:80,range:2.8*C,dmg:18,rate:1.6,speed:200,splash:40,color:'#f2b134'}
+  cannon:{cost:50,range:2.2*C,dmg:12,rate:.7,speed:320,splash:0,color:'#c9d4bb'},
+  mortar:{cost:80,range:2.8*C,dmg:18,rate:1.6,speed:200,splash:40,color:'#f2b134'}
 };
-// Wegpunkte in Feld-Koordinaten
 const WP=[[-1,1],[6,1],[6,4],[1,4],[1,7],[6,7],[6,10],[3,10],[3,12.5]];
 const pts=WP.map(([x,y])=>({x:(x+.5)*C,y:(y+.5)*C}));
 const segs=[];let total=0;
@@ -90,30 +103,60 @@ for(let i=0;i<WP.length-1;i++){
 }
 function posAt(d){for(const s of segs){if(d<=s.s+s.l){const t=(d-s.s)/s.l;return{x:s.a.x+(s.b.x-s.a.x)*t,y:s.a.y+(s.b.y-s.a.y)*t};}}return pts[pts.length-1];}
 
-let S;
-function reset(){S={gold:120,lives:20,wave:0,towers:[],enemies:[],shots:[],fx:[],spawnLeft:0,spawnT:0,running:false,sel:null,over:false};document.getElementById('over').hidden=true;hud();}
-let build='cannon';
+const SPEEDS=[1,2,3];
+let S,build='cannon',speedIdx=0;
 
+function reset(){
+  S={gold:120,lives:20,wave:0,towers:[],enemies:[],shots:[],fx:[],texts:[],queue:[],spawnT:0,auto:false,brk:null,sel:null,over:false};
+  $('over').hidden=true;hud();
+}
 function hud(){
-  document.getElementById('gold').textContent=S.gold;
-  document.getElementById('lives').textContent=S.lives;
-  document.getElementById('wave').textContent=S.wave;
-  document.getElementById('go').disabled=S.running||S.over;
+  $('gold').textContent=S.gold;
+  $('lives').textContent=S.lives;
+  $('wave').textContent=S.wave;
+  $('go').disabled=S.queue.length>0||S.over||S.auto;
+  const ring=$('ring'),next=S.wave+1;
+  if(S.brk&&!S.auto){
+    const left=Math.max(0,S.brk.dur-S.brk.t);
+    ring.hidden=false;ring.style.setProperty('--p',(left/S.brk.dur).toFixed(3));
+    $('goLabel').textContent='Welle '+next+' in '+Math.ceil(left)+' s';
+    $('goSub').textContent='Jetzt starten: +'+earlyBonus()+' Gold';
+  }else{
+    ring.hidden=true;
+    $('goLabel').textContent='Welle starten';
+    $('goSub').textContent=S.auto?'Dauerwelle läuft':S.queue.length?'Welle '+S.wave+' rückt an':S.enemies.length&&S.wave?'Sofort: +'+earlyBonus()+' Gold':'Bauphase';
+  }
+  $('auto').classList.toggle('on',S.auto);
+  $('autoLabel').textContent=S.auto?'Dauerwelle: an':'Dauerwelle: aus';
+  $('autoSub').textContent='Bonus ab Welle: +'+chainBonus(S.wave+1)+' Gold';
 }
+function chainBonus(n){return 10+5*n;}
+const BREAK=15; // Sekunden Pause nach einer geschafften Welle
+// Früher Start zahlt anteilig: je mehr Pause übrig ist, desto mehr Bonus
+function earlyBonus(){const n=S.wave+1;if(!S.wave)return 0;const f=S.brk?1-S.brk.t/S.brk.dur:1;return Math.round(chainBonus(n)*f);}
+function floatText(txt,color){S.texts.push({x:W/2,y:H*0.45,txt,color,t:0});}
 
-function startWave(){
-  if(S.running||S.over)return;
-  S.wave++;S.running=true;S.spawnLeft=6+S.wave*2;S.spawnT=0;hud();
+function startWave(bonus){
+  if(S.over)return;
+  S.brk=null;
+  S.wave++;const n=S.wave,count=6+2*n;
+  for(let i=0;i<count;i++)S.queue.push({n,boss:i===count-1&&n%5===0});
+  if(bonus>0){S.gold+=bonus;floatText('Welle '+n+' · +'+bonus+' Gold','#8fd16b');}
+  else floatText('Welle '+n,'#e9eedf');
+  if(S.spawnT<0)S.spawnT=0;
+  hud();
 }
-function spawn(){
-  const n=S.wave,boss=S.spawnLeft===1&&n%5===0;
-  const hp=Math.round(20*Math.pow(1.28,n-1)*(boss?6:1));
-  S.enemies.push({d:0,hp,max:hp,speed:(boss?32:48)+n*2.5,r:boss?14:9,reward:boss?40:5+Math.floor(n/2)});
+function spawn(q){
+  const hp=Math.round(20*Math.pow(1.28,q.n-1)*(q.boss?6:1));
+  S.enemies.push({d:0,hp,max:hp,speed:(q.boss?32:48)+q.n*2.5,r:q.boss?14:9,reward:q.boss?40:5+Math.floor(q.n/2),x:pts[0].x,y:pts[0].y});
 }
 
 function update(dt){
   if(S.over)return;
-  if(S.running&&S.spawnLeft>0){S.spawnT-=dt;if(S.spawnT<=0){spawn();S.spawnLeft--;S.spawnT=.75;}}
+  if(S.queue.length){S.spawnT-=dt;if(S.spawnT<=0){spawn(S.queue.shift());S.spawnT=.75;}}
+  if(S.auto&&S.queue.length===0)startWave(chainBonus(S.wave+1));
+  if(!S.auto&&S.wave>0&&!S.queue.length&&!S.enemies.length&&!S.brk)S.brk={t:0,dur:BREAK};
+  if(S.brk&&!S.auto){S.brk.t+=dt;if(S.brk.t>=S.brk.dur)startWave(0);}
   for(const e of S.enemies){e.d+=e.speed*dt;const p=posAt(e.d);e.x=p.x;e.y=p.y;}
   S.enemies=S.enemies.filter(e=>{if(e.d>=total){S.lives--;return false;}return e.hp>0;});
   for(const t of S.towers){
@@ -140,11 +183,11 @@ function update(dt){
   for(const e of S.enemies)if(e.hp<=0&&!e.paid){e.paid=true;S.gold+=e.reward;}
   S.enemies=S.enemies.filter(e=>e.hp>0);
   for(const f of S.fx)f.t+=dt;S.fx=S.fx.filter(f=>f.t<.3);
-  if(S.running&&S.spawnLeft===0&&S.enemies.length===0){S.running=false;S.gold+=20+S.wave*5;}
-  if(S.lives<=0){S.lives=0;S.over=true;
-    document.getElementById('overTitle').textContent='Verloren';
-    document.getElementById('overText').textContent='Du hast bis Welle '+S.wave+' durchgehalten.';
-    document.getElementById('over').hidden=false;}
+  for(const t of S.texts)t.t+=dt;S.texts=S.texts.filter(t=>t.t<1.4);
+  if(S.lives<=0){S.lives=0;S.over=true;S.auto=false;
+    $('overTitle').textContent='Verloren';
+    $('overText').textContent='Du hast bis Welle '+S.wave+' durchgehalten.';
+    $('over').hidden=false;}
   hud();
 }
 
@@ -153,7 +196,6 @@ function draw(){
     ctx.fillStyle=pathCells.has(x+','+y)?'#a88d5f':((x+y)%2?'#2b3a25':'#2f3f28');
     ctx.fillRect(x*C,y*C,C,C);
   }
-  // Pfad-Kante
   ctx.strokeStyle='rgba(0,0,0,.18)';ctx.lineWidth=2;ctx.beginPath();
   pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
   if(S.sel){const T=TYPES[S.sel.type];ctx.fillStyle='rgba(242,177,52,.12)';ctx.strokeStyle='rgba(242,177,52,.6)';ctx.lineWidth=1.5;
@@ -163,7 +205,7 @@ function draw(){
     ctx.fillStyle='#5d6b51';ctx.beginPath();ctx.arc(t.x,t.y,12,0,7);ctx.fill();
     ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.a);
     ctx.fillStyle=T.color;
-    if(t.type==='mortar'){ctx.fillRect(0,-6,14,12);}else{ctx.fillRect(0,-3,19,6);}
+    if(t.type==='mortar')ctx.fillRect(0,-6,14,12);else ctx.fillRect(0,-3,19,6);
     if(t.flash>0){ctx.fillStyle='#ffe28a';ctx.beginPath();ctx.arc(t.type==='mortar'?16:21,0,5,0,7);ctx.fill();}
     ctx.restore();
     ctx.fillStyle=T.color;ctx.beginPath();ctx.arc(t.x,t.y,6,0,7);ctx.fill();
@@ -176,10 +218,19 @@ function draw(){
   for(const s of S.shots){ctx.fillStyle=s.T.splash?'#f2b134':'#f4f1e6';ctx.beginPath();ctx.arc(s.x,s.y,s.T.splash?5:3,0,7);ctx.fill();}
   for(const f of S.fx){const k=f.t/.3;ctx.strokeStyle='rgba(255,210,120,'+(1-k)+')';ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(f.x,f.y,f.r+(f.max-f.r)*k,0,7);ctx.stroke();}
+  ctx.textAlign='center';ctx.font='700 20px '+getComputedStyle(document.body).fontFamily;
+  for(const t of S.texts){const k=t.t/1.4;ctx.globalAlpha=1-k*k;
+    ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillText(t.txt,t.x+1,t.y-k*40+1);
+    ctx.fillStyle=t.color;ctx.fillText(t.txt,t.x,t.y-k*40);ctx.globalAlpha=1;}
 }
 
 let last=performance.now();
-function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt);draw();requestAnimationFrame(loop);}
+function loop(now){
+  const dt=Math.min((now-last)/1000,.05);last=now;
+  const steps=SPEEDS[speedIdx];
+  for(let i=0;i<steps;i++)update(dt);
+  draw();requestAnimationFrame(loop);
+}
 
 cv.addEventListener('pointerdown',e=>{
   if(S.over)return;
@@ -193,16 +244,17 @@ cv.addEventListener('pointerdown',e=>{
   const T=TYPES[build];if(S.gold<T.cost)return;
   S.gold-=T.cost;S.towers.push({type:build,cx:x,cy:y,x:(x+.5)*C,y:(y+.5)*C,cd:0,a:-Math.PI/2,flash:0});hud();
 });
-function pick(t){build=t;document.getElementById('t-cannon').classList.toggle('sel',t==='cannon');document.getElementById('t-mortar').classList.toggle('sel',t==='mortar');}
-document.getElementById('t-cannon').onclick=()=>pick('cannon');
-document.getElementById('t-mortar').onclick=()=>pick('mortar');
-document.getElementById('go').onclick=startWave;
-document.getElementById('restart').onclick=reset;
+function pick(t){build=t;$('t-cannon').classList.toggle('sel',t==='cannon');$('t-mortar').classList.toggle('sel',t==='mortar');}
+$('t-cannon').onclick=()=>pick('cannon');
+$('t-mortar').onclick=()=>pick('mortar');
+$('go').onclick=()=>{if(!S.queue.length&&!S.auto&&!S.over)startWave(earlyBonus());};
+$('auto').onclick=()=>{if(S.over)return;S.auto=!S.auto;hud();};
+$('speed').onclick=()=>{speedIdx=(speedIdx+1)%SPEEDS.length;$('speed').textContent=SPEEDS[speedIdx]+'×';$('speed').classList.toggle('fast',speedIdx>0);};
+$('restart').onclick=reset;
 
 reset();requestAnimationFrame(loop);
 })();
 </script>
-
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 </script>
