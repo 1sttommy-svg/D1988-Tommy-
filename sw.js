@@ -1,6 +1,6 @@
 // Version erhöhen, wenn du eine neue Spielversion hochlädst
-const CACHE = 'filder-defense-v9';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png','./assets/castle.png','./assets/tile_03.png','./assets/tile_04.png','./assets/tile_17.png','./assets/tile_18.png','./assets/tile_31.png','./assets/tile_32.png','./assets/tile_42.png','./assets/tile_44.png','./assets/tile_46.png','./assets/tile_47.png','./assets/tile_48.png','./assets/tile_50.png','./assets/tile_52.png','./assets/tile_57.png','./assets/tile_58.png'];
+const CACHE = 'filder-defense-v27';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png','./assets/castle.png','./assets/tile_03.png','./assets/tile_04.png','./assets/tile_17.png','./assets/tile_18.png','./assets/tile_31.png','./assets/tile_32.png','./assets/tile_42.png','./assets/tile_44.png','./assets/tile_46.png','./assets/tile_47.png','./assets/tile_48.png','./assets/tile_50.png','./assets/tile_52.png','./assets/tile_57.png','./assets/tile_58.png','./assets/art/coin.png','./assets/art/heart.png','./assets/art/title.jpg','./assets/art/hero_fire.jpg','./assets/art/hero_water.jpg','./assets/art/hero_earth.jpg','./assets/art/hero_air.jpg','./assets/art/land_einsteiger.jpg','./assets/art/land_fortgeschritten.jpg','./assets/art/land_profi.jpg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
